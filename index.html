@@ -2,7 +2,9 @@
 <html lang="es"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <script>window.API_URL="https://script.google.com/macros/s/AKfycbzY_ufsprIQLUD5Qd8OolGcsRlzzC7hhDgM_EoPYtxepsfHv_wcVrzoRiO0H3YaAAa9/exec";window.CLIENT_ID="138206776381-eep6qsc0nu0ceb2k6gjd6mgbk10d3c7g.apps.googleusercontent.com"</script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Nuevos Negocios SITÛ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
@@ -114,6 +116,11 @@ h1{font-weight:300;font-size:24px}h2{font-weight:500;color:var(--accent)}
 .mapw.place,.mapw.place .leaflet-container{cursor:crosshair}
 .mapw>.lm{position:absolute;inset:0;z-index:0}
 .zm{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
+.gp{background:none;border:0}.gp svg{display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));transition:transform .12s;transform-origin:50% 100%}.gp:hover svg{transform:scale(1.15)}
+.gc{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:var(--accent);color:#fff;font:500 14px var(--sans);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.leaflet-popup-content{margin:12px 14px;font:13px/1.4 var(--sans);min-width:220px}.leaflet-popup-content b{font-size:15px;font-weight:500}.pc-m{color:var(--mute);font-size:12px;margin:1px 0 6px}.pc-s{display:flex;gap:12px;margin:7px 0;font-size:12px;color:var(--mute)}.pc-s strong{display:block;color:var(--ink);font-size:14px;font-weight:500}.pc-n{font-size:12px;color:var(--mute);border-left:3px solid var(--accent);padding-left:7px;margin:7px 0}
+.leaflet-popup-content .btn{display:inline-block;text-decoration:none;color:#fff;background:var(--accent);border-color:var(--accent);padding:5px 10px;font-size:12px}
+.list button .pill{float:right;margin-left:6px;font-size:11px}
 .lg{position:absolute;z-index:500;left:8px;bottom:22px;background:var(--panel);border:1px solid var(--line);padding:4px 8px;border-radius:5px;font-size:11px;color:var(--mute);display:flex;gap:10px;flex-wrap:wrap}
 .list{max-height:clamp(360px,calc(100vh - 320px),760px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px}
 .list button{display:block;width:100%;background:none;border:0;border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;cursor:pointer}
@@ -248,26 +255,31 @@ function vRepo(){const f=S.f,A=allP().filter(p=>p.activo);const cnt=ESTADOS.map(
 
 function approx(p){if(p.lat)return null;const c=COMUNAS[p.comuna];if(!c)return null;const pts=c.flat();let h=0;for(const ch of p.id)h=h*31+ch.charCodeAt(0);const x=pts.reduce((a,q)=>a+q[0],0)/pts.length+((h%13)-6)*.0016,y=pts.reduce((a,q)=>a+q[1],0)/pts.length+(((h>>3)%13)-6)*.0013;return{lng:x,lat:y}}
 const STGO=[[-33.62,-70.82],[-33.30,-70.45]];S.maps={};
-function mapHTML(id,sm,place){return`<div class="mapw ${sm?'sm':''} ${place?'place':''}"><div class="lm" id="${id}"></div><div class="lg"><span>● ubicación del KMZ o fijada</span><span>○ aproximada por comuna</span></div></div>`}
-function lmap(id,P,o={}){if(S.maps[id]){try{S.maps[id].remove()}catch{}}const el=$('#'+id);if(!el||!window.L)return;
+function mapHTML(id,sm,place){return`<div class="mapw ${sm?'sm':''} ${place?'place':''}"><div class="lm" id="${id}"></div><div class="lg"><span>Pin lleno: ubicación exacta</span><span>Pin punteado: aproximada por comuna</span></div></div>`}
+function lmap(id,P,o={}){if(S.maps[id]){try{S.maps[id].stop();S.maps[id].remove()}catch{}delete S.maps[id]}const el=$('#'+id);if(!el||!window.L)return;
   const m=L.map(el,{scrollWheelZoom:true,zoomSnap:.5});S.maps[id]=m;
-  const calles=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd',attribution:'© OpenStreetMap · © CARTO'});
-  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri'});
-  (o.satelite?sat:calles).addTo(m);L.control.layers({'Calles':calles,'Satélite':sat},null,{position:'topright'}).addTo(m);
-  for(const n in COMUNAS)for(const r of COMUNAS[n])L.polyline(r.map(p=>[p[1],p[0]]),{color:'#5B6670',weight:1,opacity:.45,interactive:false}).addTo(m);
-  const pts=[];for(const p of P){const a=p.lat?{lng:p.lng,lat:p.lat}:approx(p);if(!a)continue;const c=getComputedStyle(document.documentElement).getPropertyValue(ECOL[ESTADOS.indexOf(p.estado)]).trim();
-    if(p.poly&&p.poly.length>2){const g=L.polygon(p.poly.map(q=>[q[1],q[0]]),{color:c,weight:2,fillOpacity:.3}).addTo(m);pts.push(...g.getLatLngs()[0]);if(!o.place)g.on('click',()=>{if(!o.solo)location.hash='p-'+p.id})}
-    const k=L.circleMarker([a.lat,a.lng],{radius:p.lat?7:6,color:c,weight:2,fillColor:p.lat?c:'#fff',fillOpacity:1}).addTo(m).bindTooltip(esc(p.nombre)+(p.lat?'':' · ubicación aproximada'));
-    if(!o.place&&!o.solo)k.on('click',()=>location.hash='p-'+p.id);if(p.lat)pts.push(L.latLng(a.lat,a.lng))}
+  const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+  const clara=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd',attribution:'© OpenStreetMap · © CARTO'});
+  const sat=L.layerGroup([L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri'}),L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}),L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19})]);
+  (o.satelite?sat:osm).addTo(m);L.control.layers({'Calles y lugares':osm,'Mapa claro':clara,'Satélite con calles':sat},null,{position:'topright'}).addTo(m);L.control.scale({imperial:false}).addTo(m);
+  for(const n in COMUNAS)for(const r of COMUNAS[n])L.polyline(r.map(p=>[p[1],p[0]]),{color:'#96323C',weight:1,opacity:.28,dashArray:'4 4',interactive:false}).addTo(m);
+  const icono=(c,ex)=>L.divIcon({className:'gp',iconSize:[32,42],iconAnchor:[16,42],popupAnchor:[0,-38],tooltipAnchor:[14,-26],html:`<svg width="32" height="42" viewBox="0 0 32 42"><path d="M16 1C7.7 1 1 7.7 1 16c0 11 15 25 15 25s15-14 15-25C31 7.7 24.3 1 16 1z" fill="${ex?c:'#fff'}" stroke="${ex?'#fff':c}" stroke-width="2" ${ex?'':'stroke-dasharray="4 3"'}/><circle cx="16" cy="16" r="6" fill="${ex?'#fff':c}"/></svg>`});
+  const grupo=o.solo?m:L.markerClusterGroup({maxClusterRadius:44,showCoverageOnHover:false,iconCreateFunction:cl=>L.divIcon({className:'',iconSize:[42,42],html:`<div class="gc">${cl.getChildCount()}</div>`})});if(!o.solo)m.addLayer(grupo);
+  const pts=[];S.mk={};for(const p of P){const a=p.lat?{lng:p.lng,lat:p.lat}:approx(p);if(!a)continue;const c=getComputedStyle(document.documentElement).getPropertyValue(ECOL[ESTADOS.indexOf(p.estado)]).trim();
+    if(p.poly&&p.poly.length>2){const g=L.polygon(p.poly.map(q=>[q[1],q[0]]),{color:c,weight:2,fillOpacity:.3}).addTo(m);pts.push(...g.getLatLngs()[0])}
+    const F=flujo(p),s=p.sup||{};const k=L.marker([a.lat,a.lng],{icon:icono(c,!!p.lat),title:p.nombre,riseOnHover:true}).bindTooltip(esc(p.nombre)+(p.lat?'':' · aproximado'));
+    k.bindPopup(`<b>${esc(p.nombre)}</b><div class="pc-m">${esc(p.tipo)} · ${esc(p.comuna)}${p.lat?'':' · ubicación aproximada'}</div>${pill(p)}${s.terreno||s.vendible||s.unidades?`<div class="pc-s">${s.terreno?`<span><strong>${num(s.terreno)}</strong>Terreno m²</span>`:''}${s.vendible?`<span><strong>${num(s.vendible)}</strong>Vendible m²</span>`:''}${s.unidades?`<span><strong>${num(s.unidades)}</strong>Unidades</span>`:''}</div>`:''}<div class="pc-n">${esc(F.n.q)}: ${esc(F.n.x)}</div>${o.solo?'':`<a class="btn" href="#p-${p.id}" data-p="${p.id}">Abrir ficha</a>`}`);
+    grupo.addLayer(k);S.mk[p.id]={k,g:grupo};if(p.lat)pts.push(L.latLng(a.lat,a.lng))}
   if(o.place)m.on('click',e=>o.place(e.latlng.lng,e.latlng.lat));
-  if(o.vista)m.setView(o.vista.c,o.vista.z);else if(o.solo&&pts.length)m.fitBounds(L.latLngBounds(pts).pad(pts.length>1?1.2:0),{maxZoom:18});else if(o.solo)m.fitBounds(STGO);else m.fitBounds(STGO);
+  if(o.vista)m.setView(o.vista.c,o.vista.z);else if(o.solo&&pts.length)m.fitBounds(L.latLngBounds(pts).pad(pts.length>1?1.5:0),{maxZoom:18});else if(o.solo)m.fitBounds(STGO);else m.fitBounds(STGO);
   if(o.guardar)m.on('moveend',()=>{S.mv={c:m.getCenter(),z:m.getZoom()}});
-  setTimeout(()=>m.invalidateSize(),60);return m}
+  setTimeout(()=>{if(S.maps[id]===m&&m._container?.isConnected)m.invalidateSize()},60);return m}
+function listaMapa(ex,ap,off){const q=(S.mf.q||'').toLowerCase();const it=(L0,fly,tag)=>L0.filter(p=>!q||(p.nombre+' '+p.comuna).toLowerCase().includes(q)).map(p=>`<button ${fly?'data-fly':'data-p'}="${p.id}"><span class="nm">${esc(p.nombre)}</span><br><span class="meta">${esc(p.tipo)} · ${esc(p.comuna)}${tag}</span></button>`).join('');return(it(ex,1,'')+it(ap,1,' · aproximado')+it(off,0,' · sin ubicar'))||'<div class="empty">Sin resultados.</div>'}
 function vMapa(){const f=S.mf||(S.mf={est:'',vista:'activos'});const P=allP().filter(p=>(f.vista==='todos'||(p.activo&&p.estado!=='Descartado'))&&(!f.est||p.estado===f.est));
   const ex=P.filter(p=>p.lat),ap=P.filter(p=>!p.lat&&COMUNAS[p.comuna]),off=P.filter(p=>!p.lat&&!COMUNAS[p.comuna]);
-  $('#main').innerHTML=`<h1>Mapa de proyectos</h1><p class="sub">${ex.length} con ubicación exacta, ${ap.length} aproximados por comuna y ${off.length} sin ubicar. Haz zoom con la rueda del mouse y cambia a satélite arriba a la derecha.</p>
+  $('#main').innerHTML=`<h1>Mapa de proyectos</h1><p class="sub">${ex.length} con ubicación exacta, ${ap.length} aproximados por comuna y ${off.length} sin ubicar. Haz clic en un pin para ver su resumen. Arriba a la derecha puedes cambiar a satélite.</p>
   <div class="bar"><select id="mfe" aria-label="Estado">${opts(ESTADOS,f.est,'Todos los estados')}</select><select id="mfv" aria-label="Vista">${opts([['activos','Activos'],['todos','Incluir histórico']],f.vista)}</select></div>
-  <div class="maph">${mapHTML('mm')}<div><h2>Sin ubicar (${off.length})</h2><div class="list">${off.map(p=>`<button data-p="${p.id}"><span class="nm">${esc(p.nombre)}</span><br><span class="meta">${esc(p.tipo)} · ${esc(p.comuna)}</span></button>`).join('')||'<div class="empty">Todos ubicados.</div>'}</div></div></div>`;
+  <div class="maph">${mapHTML('mm')}<div><input type="search" id="mq" aria-label="Buscar en el mapa" placeholder="Buscar proyecto" value="${esc(f.q||'')}" style="width:100%;margin-bottom:8px"><div class="list" id="ml">${listaMapa(ex,ap,off)}</div></div></div>`;
   lmap('mm',[...ex,...ap],{guardar:true,vista:S.mv})}
 function vPrio(){const A=allP().filter(p=>p.activo&&p.estado!=='Descartado'&&p.estado!=='Evaluado'||(p.prioridad&&p.activo&&p.estado!=='Descartado'));const ids=Object.keys(S.users);
   const r=S.pf.resp;const L=A.filter(p=>!r||(r==='_'?!p.responsable:p.responsable===r)).sort((a,b)=>{const pa=PRIO.indexOf(a.prioridad),pb=PRIO.indexOf(b.prioridad);return(pa<0?9:pa)-(pb<0?9:pb)||(a.fecha||'9').localeCompare(b.fecha||'9')||b.mod-a.mod});
@@ -349,7 +361,7 @@ async function saveV(pid){const fm=$('#fv');if(!fm.reportValidity())return;const
   catch(e){btn.disabled=false;msg.textContent=e?.code==='big'?'El archivo supera 35 MB. Guarda sin adjuntar e indica la ruta del disco D.':'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.'}}
 
 /* ---------- eventos ---------- */
-document.addEventListener('input',e=>{const t=e.target;if(t.id==='q'){S.f.q=t.value;S.f.n=60;render()}if(t.id==='lq'){S.lf=t.value;render()}});
+document.addEventListener('input',e=>{const t=e.target;if(t.id==='q'){S.f.q=t.value;S.f.n=60;render()}if(t.id==='lq'){S.lf=t.value;render()}if(t.id==='mq'){S.mf.q=t.value;const P=allP().filter(p=>S.mf.vista==='todos'||(p.activo&&p.estado!=='Descartado'));$('#ml').innerHTML=listaMapa(P.filter(p=>p.lat),P.filter(p=>!p.lat&&COMUNAS[p.comuna]),P.filter(p=>!p.lat&&!COMUNAS[p.comuna]))}});
 document.addEventListener('change',async e=>{const t=e.target,c=t.dataset;
   if(t.id==='ft'){S.f.tipo=t.value;render()}if(t.id==='fc'){S.f.comuna=t.value;render()}if(t.id==='fr'){S.f.resp=t.value;render()}if(t.id==='fs'){S.f.sort=t.value;render()}
   if(t.id==='mfe'){S.mf.est=t.value;render()}if(t.id==='mfv'){S.mf.vista=t.value;render()}
@@ -360,6 +372,7 @@ document.addEventListener('change',async e=>{const t=e.target,c=t.dataset;
   if(t.id==='ff'&&/\.xls[xm]?$/i.test(t.files[0]?.name||'')&&$('#fv')?.dataset.clase==='cabida'){const m=$('#fmsg');try{m.textContent='Leyendo superficies del Excel…';const s=await readSup(t.files[0]);let n=0;for(const k in s){const i=document.querySelector(`[name=s_${k}]`);if(i&&s[k]!=null){i.value=Math.round(s[k]*100)/100;n++}}m.textContent=n?n+' campos completados desde el Excel. Revísalos antes de guardar.':'No se reconocieron superficies en este Excel. Complétalas a mano.'}catch(x){m.textContent='No se pudo leer el Excel. Complétalas a mano.'}}});
 document.addEventListener('click',async e=>{const t=e.target.closest('button,a,tr.r,.lam');if(!t)return;const c=t.dataset;const pid=route().startsWith('p-')?route().slice(2):null;const p=pid&&proj(pid);
   if(c.close&&e.target===t){location.hash=S.lastBase||'repositorio';return}
+  if(c.fly){const x=S.mk[c.fly];if(x){x.g.zoomToShowLayer?x.g.zoomToShowLayer(x.k,()=>x.k.openPopup()):x.k.openPopup()}return}
   if(c.p&&t.tagName!=='CIRCLE'){S.tab='res';S.placing=false;location.hash='p-'+c.p;return}
   if(c.est!=null&&t.closest('.pipe')){S.f.est=S.f.est===c.est?'':c.est;render();return}
   if(c.v){S.f.vista=c.v;S.f.n=60;render();return}
